@@ -1,15 +1,15 @@
-"""Streamlit Meta-Tool Demo - 세 가지 실행 모드 비교
+"""Streamlit Meta-Tool Demo - Comparing Three Execution Modes
 
-이 Streamlit 앱은 세 가지 Agent Skills 실행 모드를 시각적으로 비교합니다:
-1. File-based Mode: LLM이 file_read로 SKILL.md 직접 읽기
-2. Tool-based Mode: skill tool로 instructions 로드
-3. Meta-Tool Mode: Sub-agent를 tool로 사용 (Agent as Tool 패턴)
+This Streamlit app visually compares three Agent Skills execution modes:
+1. File-based Mode: LLM directly reads SKILL.md via file_read
+2. Tool-based Mode: Load instructions via skill tool
+3. Meta-Tool Mode: Use Sub-agent as tool (Agent as Tool pattern)
 """
 
-import sys
-from pathlib import Path
 import logging
 import os
+import sys
+from pathlib import Path
 from typing import Any
 
 os.environ["BYPASS_TOOL_CONSENT"] = "true"
@@ -18,18 +18,19 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import streamlit as st
 from strands import Agent
 from strands.models import BedrockModel
-from strands_tools import file_read, file_write, shell, editor
+from strands_tools import editor, file_read, file_write, shell
+
 from agentskills import (
+    create_skill_agent_tool,
+    create_skill_tool,
     discover_skills,
     generate_skills_prompt,
-    create_skill_tool,
-    create_skill_agent_tool,
     get_bedrock_agent_model,
 )
 from utils.strands_stream import StreamlitStreamRenderer
 from utils.strands_stream.events import StreamOutput
 
-# 로깅 설정
+# Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -37,7 +38,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 logging.getLogger("opentelemetry.context").setLevel(logging.CRITICAL)
 
-# 페이지 설정
+# Page configuration
 st.set_page_config(
     page_title="Agent Skills - Multi-Agent Mode Demo",
     page_icon="🤖",
@@ -50,7 +51,7 @@ st.set_page_config(
 
 
 def init_session_state():
-    """Session state 초기화"""
+    """Initialize session state"""
     if "skills" not in st.session_state:
         st.session_state.skills = []
     if "agent" not in st.session_state:
@@ -60,7 +61,7 @@ def init_session_state():
 
 
 def create_agent_by_mode(skills, skills_dir, mode: str):
-    """선택된 모드에 따라 Agent 생성"""
+    """Create Agent according to selected mode"""
     skills_prompt = generate_skills_prompt(skills)
     
     agent_model = get_bedrock_agent_model(thinking=True)
@@ -87,7 +88,7 @@ def create_agent_by_mode(skills, skills_dir, mode: str):
         return agent
 
     else:  # Meta-Tool Mode
-        # Sub-agent를 tool로 사용 - Strands의 "Agents as Tools" 패턴
+        # Use Sub-agent as tool - Strands's "Agents as Tools" pattern
         subagent_model = get_bedrock_agent_model(
             max_tokens=48000,
             thinking=True
@@ -181,8 +182,8 @@ class StreamlitContainerManager:
 async def render_agent_stream(agent_stream, container_manager: StreamlitContainerManager):
     """Render agent stream with source-based container management
     
-    StreamlitStreamRenderer를 사용하여 이벤트를 처리하고,
-    source별로 실시간 스트리밍으로 렌더링합니다.
+    Process events using StreamlitStreamRenderer and render them
+    in real-time streaming by source.
     """
     renderer = StreamlitStreamRenderer()
 
@@ -204,53 +205,53 @@ async def render_agent_stream(agent_stream, container_manager: StreamlitContaine
                         logger.debug(f"Rendering legacy string for main agent: {len(result)} chars")
                         container_manager.append_content(None, result)
 
-        logger.info("✅ Agent 실행 완료")
+        logger.info("✅ Agent execution complete")
 
     except Exception as e:
-        logger.error(f"스트리밍 오류: {str(e)}")
-        error_msg = f"\n\n❌ 오류 발생: {str(e)}\n"
+        logger.error(f"Streaming error: {str(e)}")
+        error_msg = f"\n\n❌ Error occurred: {str(e)}\n"
         container_manager.append_content(None, error_msg)
         raise
 
 
-# 메인 UI
+# Main UI
 st.title("🤖 Strands AgentSkills")
 st.subheader("🔍 Streamlit Integration Demo")
-st.markdown("""> 세 가지 Agent Skills 실행 모드를 비교하고, 실제 에이전트의 SKILLS 호출 동작을 시각적으로 확인할 수 있습니다.""")
+st.markdown("""> You can compare three Agent Skills execution modes and visually check the actual agent's SKILLS calling behavior.""")
 
-# Session state 초기화
+# Initialize session state
 init_session_state()
 
-# 사이드바
+# Sidebar
 with st.sidebar:
-    st.header("⚙️ 설정")
+    st.header("⚙️ Settings")
 
-    # 모드 선택
+    # Mode selection
     mode_options = ["Meta-Tool Mode", "Tool-based Mode", "File-based Mode"]
     selected_mode = st.selectbox(
-        "실행 모드 선택:",
+        "Select execution mode:",
         mode_options,
         index=0,
         key="mode_select"
     )
 
-    # 모드 설명
+    # Mode descriptions
     mode_descriptions = {
-        "File-based Mode": "📄 LLM이 file_read로 SKILL.md 직접 읽기\n- 가장 자연스러운 방식\n- 일반적인 사용에 권장",
-        "Tool-based Mode": "🔧 skill tool로 instructions 로드\n- 구조화된 접근\n- 명시적 skill 활성화",
-        "Meta-Tool Mode": "🔗 Sub-agent를 tool로 사용\n- Agent as Tool 패턴\n- 완전한 context 분리"
+        "File-based Mode": "📄 LLM directly reads SKILL.md via file_read\n- Most natural approach\n- Recommended for general use",
+        "Tool-based Mode": "🔧 Load instructions via skill tool\n- Structured approach\n- Explicit skill activation",
+        "Meta-Tool Mode": "🔗 Use Sub-agent as tool\n- Agent as Tool pattern\n- Complete context separation"
     }
 
     st.info(mode_descriptions[selected_mode])
 
     st.divider()
 
-    # Skills 로드
+    # Load Skills
     skills_dir = Path(__file__).parent.parent.parent / "skills"
-    st.caption(f"Skills 디렉토리: `{skills_dir.name}`")
+    st.caption(f"Skills directory: `{skills_dir.name}`")
 
-    if st.button("🔄 Skills 다시 로드", use_container_width=True):
-        with st.spinner("Skills 로드 중..."):
+    if st.button("🔄 Reload Skills", use_container_width=True):
+        with st.spinner("Loading Skills..."):
             st.session_state.skills = discover_skills(skills_dir)
             if st.session_state.skills:
                 st.session_state.agent = create_agent_by_mode(
@@ -259,12 +260,12 @@ with st.sidebar:
                     selected_mode
                 )
                 st.session_state.mode = selected_mode
-                st.success(f"✅ {len(st.session_state.skills)}개 Skills 로드!")
+                st.success(f"✅ {len(st.session_state.skills)} Skills loaded!")
             else:
-                st.warning("⚠️ Skills를 찾을 수 없습니다.")
+                st.warning("⚠️ Cannot find Skills.")
         st.rerun()
 
-    # 모드가 변경되었으면 agent 재생성
+    # Recreate agent if mode changed
     if st.session_state.mode != selected_mode and st.session_state.skills:
         st.session_state.agent = create_agent_by_mode(
             st.session_state.skills,
@@ -275,7 +276,7 @@ with st.sidebar:
 
     if st.session_state.skills:
         st.divider()
-        st.subheader("📦 발견된 Skills")
+        st.subheader("📦 Discovered Skills")
         for skill in st.session_state.skills:
             with st.expander(f"**{skill.name}**"):
                 st.caption(skill.description)
@@ -304,52 +305,52 @@ else:
 
     query = st.text_area(
         "질의 입력:",
-        "sales_data 파일을 분석하고, 모든 시각화 이미지를 첨부하여 영문 pptx 파일로 만들어주세요. 동시에 인사이트 분석 보고서를 docs로 작성하세요.",
-        placeholder="Agent에게 질의를 입력하세요",
+        "Analyze the sales_data file and create it as an English pptx file with all visualization images attached. At the same time, write an insight analysis report in docs.",
+        placeholder="Enter query for Agent",
         key="query_input",
         height="content"
     )
 
-    run_button = st.button("🚀 실행", use_container_width=True, type="primary")
+    run_button = st.button("🚀 Run", use_container_width=True, type="primary")
 
-    # Agent 실행
+    # Execute Agent
     if run_button and query:
-        # 질의 표시
+        # Display query
         with st.chat_message("user"):
             st.write(query)
 
-        # Agent 응답
+        # Agent response
         with st.chat_message("assistant"):
             if hasattr(st.session_state.agent, "stream_async"):
-                logger.info(f"🚀 Agent 실행 시작 [{st.session_state.mode}]: {query}")
+                logger.info(f"🚀 Agent execution started [{st.session_state.mode}]: {query}")
                 
                 # Create container manager for source-based rendering
                 container_manager = StreamlitContainerManager()
                 
-                # Strands SDK의 tool_stream_event 패턴으로 Sub-agent 스트리밍 처리
+                # Handle Sub-agent streaming with Strands SDK's tool_stream_event pattern
                 agent_stream = st.session_state.agent.stream_async(query)
                 
-                # Streamlit은 동기적으로 실행되므로 asyncio.run() 사용
-                # 이미 실행 중인 event loop가 있을 경우 nest_asyncio로 해결
+                # Streamlit runs synchronously, so use asyncio.run()
+                # If event loop is already running, solve with nest_asyncio
                 import asyncio
                 try:
                     import nest_asyncio
                     nest_asyncio.apply()
                 except ImportError:
-                    pass  # nest_asyncio가 없어도 대부분의 경우 동작함
+                    pass  # Works in most cases even without nest_asyncio
                 
                 asyncio.run(render_agent_stream(agent_stream, container_manager))
             else:
-                st.error("스트리밍이 지원되지 않는 Agent입니다.")
+                st.error("This Agent does not support streaming.")
 
-        st.success("✅ 실행 완료!")
+        st.success("✅ Execution complete!")
 
 
-# 하단 정보
+# Bottom information
 st.divider()
 st.caption("""
 **💡 Tips:**
-- Meta-Tool Mode: Agent as Tool 패턴 - 각 Skill이 독립된 Sub-agent(tool)에서 실행됩니다
-- Tool-based Mode: skill tool 호출을 통한 명시적 activation을 볼 수 있습니다
-- File-based Mode: LLM이 file_read tool을 사용하여 SKILL.md를 직접 읽는 자연스러운 방식입니다
+- Meta-Tool Mode: Agent as Tool pattern - Each Skill runs in an independent Sub-agent(tool)
+- Tool-based Mode: You can see explicit activation through skill tool calls
+- File-based Mode: Natural approach where LLM uses file_read tool to directly read SKILL.md
 """)

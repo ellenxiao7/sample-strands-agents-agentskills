@@ -1,12 +1,14 @@
 from typing import Optional
+
 from strands.models import BedrockModel
 
 
 def get_bedrock_agent_model(
-    model_id: str = "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    model_id: str = "anthropic.claude-3-5-sonnet-20241022-v2:0",
     temperature: float = 1,
-    max_tokens: int = 24000,
+    max_tokens: int = 4096,
     thinking: bool = False,
+    streaming: bool = False,
     budget_tokens: Optional[int] = None
 ):
     additional_request_fields = {}
@@ -25,7 +27,8 @@ def get_bedrock_agent_model(
         model_id=model_id,
         temperature=temperature,
         max_tokens=max_tokens,
-        cache_tools="default",
-        additional_request_fields=additional_request_fields if additional_request_fields else None
+        cache_tools=None,  # Disabled prompt caching to avoid AccessDeniedException
+        additional_request_fields=additional_request_fields if additional_request_fields else None,
+        streaming=streaming,
     )
     return agent_model

@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from strands import Agent
 from strands_tools import file_read, file_write, shell
+
 from agentskills import discover_skills, generate_skills_prompt, get_bedrock_agent_model
 from utils.strands_stream import TerminalStreamRenderer
 
@@ -72,7 +73,7 @@ async def main():
 
     # Create agent with file tools
     # LLM will use file_read to load SKILL.md and resources when needed
-    agent_model = get_bedrock_agent_model(thinking=True)
+    agent_model = get_bedrock_agent_model()
     agent = Agent(
         system_prompt=full_prompt,
         tools=[file_read, file_write, shell],
