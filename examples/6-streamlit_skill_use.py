@@ -38,7 +38,7 @@ from utils.strands_stream.events import TextEvent
 
 # Page configuration
 st.set_page_config(
-    page_title="Agent Skills - Effectiveness Demo",
+    page_title="Agent Skills - Demo",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -70,10 +70,12 @@ if "chat_history_without" not in st.session_state:
     st.session_state.chat_history_without = []
 if "comparison_mode" not in st.session_state:
     st.session_state.comparison_mode = "Side-by-side"
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = []
 
 
 # Main title
-st.title("⚡ Agent Skills - Effectiveness Demo")
+st.title("⚡ Agent Skills - Demo")
 st.markdown("""
 Compare agent behavior **with** and **without** Agent Skills. See how skills enhance
 agent capabilities, improve responses, and provide specialized knowledge.
@@ -103,6 +105,59 @@ with st.sidebar:
             for skill in st.session_state.skills:
                 st.write(f"**{skill.name}**")
                 st.caption(skill.description[:100] + "...")
+    
+    st.divider()
+    
+    # File upload section
+    st.header("📁 File Upload")
+    uploaded_file = st.file_uploader(
+        "Upload a file to test skills",
+        type=["pdf", "txt", "md", "json", "csv", "xlsx", "docx", "pptx"],
+        help="Upload a file that the agent can work with"
+    )
+    
+    if uploaded_file is not None:
+        # Save uploaded file to workspace
+        upload_dir = Path(__file__).parent.parent / "_scratch" / "uploads"
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        file_path = upload_dir / uploaded_file.name
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        
+        # Add to uploaded files list if not already there
+        file_info = {
+            "name": uploaded_file.name,
+            "path": str(file_path),
+            "size": uploaded_file.size,
+            "type": uploaded_file.type
+        }
+        
+        # Check if file already in list
+        if not any(f["name"] == uploaded_file.name for f in st.session_state.uploaded_files):
+            st.session_state.uploaded_files.append(file_info)
+        
+        st.success(f"✅ Uploaded: `{uploaded_file.name}`")
+        st.caption(f"Saved to: `{file_path}`")
+        st.caption(f"Size: {uploaded_file.size / 1024:.1f} KB")
+    
+    # Show uploaded files
+    if st.session_state.uploaded_files:
+        with st.expander("📎 Uploaded Files", expanded=True):
+            for file_info in st.session_state.uploaded_files:
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.write(f"**{file_info['name']}**")
+                    st.caption(f"Path: `{file_info['path']}`")
+                with col2:
+                    if st.button("🗑️", key=f"delete_{file_info['name']}", help="Remove file"):
+                        # Delete file
+                        try:
+                            Path(file_info['path']).unlink(missing_ok=True)
+                        except:
+                            pass
+                        st.session_state.uploaded_files.remove(file_info)
+                        st.rerun()
     
     st.divider()
     
@@ -232,14 +287,17 @@ def show_chat_interface():
     # Suggested queries
     suggested_queries = [
         "What skills do you have?",
-        "How can you help me?",
-        "What are your capabilities?",
     ]
     
     # Add skill-specific suggestions if skills exist
     if st.session_state.skills:
-        for skill in st.session_state.skills[:2]:  # First 2 skills
+        for skill in st.session_state.skills[:1]:  # First 2 skills
             suggested_queries.append(f"How do I use the {skill.name} skill?")
+    
+    # Add file-specific suggestions if files are uploaded
+    if st.session_state.uploaded_files:
+        for file_info in st.session_state.uploaded_files[:1]:  # First file only
+            suggested_queries.append(f"Analyze the file: {file_info['name']}")
     
     # Check if any suggested query button was clicked
     query_to_process = None

@@ -1,8 +1,6 @@
 ---
 name: file-processing
 description: Process and analyze CSV, JSON, and text files with data transformation, cleaning, analysis, and visualization capabilities
-allowed-tools:
-  - shell
 ---
 
 # File Processing Skill
